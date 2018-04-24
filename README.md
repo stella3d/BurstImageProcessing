@@ -1,2 +1,6 @@
 # BurstImageProcessing
-fast parallel image processing on the CPU, using Unity C# jobs and Burst compilation
+
+This library is **experimental** & **unofficial**, you probably shouldn't use it yet.
+
+#### Current Features
+* Perform many different operations based on whether the channel pixel value is over/under a threshold
