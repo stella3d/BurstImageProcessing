@@ -6,6 +6,7 @@ namespace BurstImageProcessing.Threshold.Bitwise
 {
     // over-threshold bitwise operation performed against the pixel's own data (self)
     [ComputeJobOptimization]
+    [ComposerInputs(Operator.BitwiseComplement, Comparator.Greater, Operand.Self)]
     public struct OverThresholdSelfComplementJob : IJobParallelFor
     {
         public NativeSlice<byte> data;
@@ -18,6 +19,7 @@ namespace BurstImageProcessing.Threshold.Bitwise
     }
 
     [ComputeJobOptimization]
+    [ComposerInputs(Operator.BitwiseLeftShift, Comparator.Greater, Operand.Self)]
     public struct OverThresholdSelfLeftShiftJob : IJobParallelFor
     {
         public NativeSlice<byte> data;
@@ -30,6 +32,7 @@ namespace BurstImageProcessing.Threshold.Bitwise
     }
 
     [ComputeJobOptimization]
+    [ComposerInputs(Operator.BitwiseRightShift, Comparator.Greater, Operand.Self)]
     public struct OverThresholdSelfRightShiftJob : IJobParallelFor
     {
         public NativeSlice<byte> data;
@@ -43,6 +46,7 @@ namespace BurstImageProcessing.Threshold.Bitwise
 
 
     [ComputeJobOptimization]
+    [ComposerInputs(Operator.BitwiseExclusiveOr, Comparator.Greater, Operand.Self)]
     public struct OverThresholdSelfExclusiveOrJob : IJobParallelFor
     {
         public NativeSlice<byte> data;
@@ -56,6 +60,7 @@ namespace BurstImageProcessing.Threshold.Bitwise
 
     // perform bitwise operation against the threshold value instead of against the pixel's value
     [ComputeJobOptimization]
+    [ComposerInputs(Operator.BitwiseComplement, Comparator.Greater, Operand.Other)]
     public struct OverThresholdComplementJob : IJobParallelFor
     {
         public NativeSlice<byte> data;
@@ -68,6 +73,7 @@ namespace BurstImageProcessing.Threshold.Bitwise
     }
 
     [ComputeJobOptimization]
+    [ComposerInputs(Operator.BitwiseExclusiveOr, Comparator.Greater, Operand.Other)]
     public struct OverThresholdExclusiveOrJob : IJobParallelFor
     {
         public NativeSlice<byte> data;
@@ -80,6 +86,7 @@ namespace BurstImageProcessing.Threshold.Bitwise
     }
 
     [ComputeJobOptimization]
+    [ComposerInputs(Operator.BitwiseLeftShift, Comparator.Greater, Operand.Other)]
     public struct OverThresholdLeftShiftJob : IJobParallelFor
     {
         public NativeSlice<byte> data;
@@ -92,6 +99,7 @@ namespace BurstImageProcessing.Threshold.Bitwise
     }
 
     [ComputeJobOptimization]
+    [ComposerInputs(Operator.BitwiseRightShift, Comparator.Greater, Operand.Other)]
     public struct OverThresholdRightShiftJob : IJobParallelFor
     {
         public NativeSlice<byte> data;
