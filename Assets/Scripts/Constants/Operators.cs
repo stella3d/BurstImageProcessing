@@ -3,6 +3,7 @@
     public enum Operator
     {
         Add,
+        Subtract,
         BitwiseComplement,
         BitwiseExclusiveOr,
         BitwiseLeftShift,
