@@ -18,51 +18,31 @@ namespace BurstImageProcessing
 
         public Comparator Comparator
         {
-            get
-            {
-                return m_Comparator;
-            }
-
-            set
-            {
-                m_Comparator = value;
-            }
+            get { return m_Comparator; }
         }
 
         public Operator Operator
         {
-            get
-            {
-                return m_Operator;
-            }
-
-            set
-            {
-                m_Operator = value;
-            }
+            get { return m_Operator; }
         }
 
         public Operand Operand
         {
-            get
-            {
-                return m_Operand;
-            }
-
-            set
-            {
-                m_Operand = value;
-            }
+            get { return m_Operand; }
         }
 
         public override bool Equals(object obj)
         {
             var attribute = obj as ComposerInputsAttribute;
             return attribute != null &&
-                   base.Equals(obj) &&
                    Comparator == attribute.Comparator &&
                    Operator == attribute.Operator &&
                    Operand == attribute.Operand;
+        }
+
+        public override int GetHashCode()
+        {
+            return ((int)m_Operator) * 1000  + ((int)m_Comparator) * 100 + ((int)m_Operand);
         }
     }
 }

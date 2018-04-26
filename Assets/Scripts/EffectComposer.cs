@@ -1,17 +1,23 @@
-﻿using System;
+﻿using BurstImageProcessing.Utils;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
+using Unity.Jobs;
 using UnityEngine;
 
 namespace BurstImageProcessing
 {
+    [ExecuteInEditMode]
     public class EffectComposer : MonoBehaviour
     {
         [SerializeField]
         [Range(0, 255)]
         protected byte m_AdditionValue;
 
+        [SerializeField]
+        [Tooltip("This color defines the 'threshold' value against which pixel channel equality is tested")]
+        protected Color32 m_ColorThreshold = new Color32();
 
         [SerializeField]
         protected bool m_EnableRed = true;
@@ -40,9 +46,25 @@ namespace BurstImageProcessing
         [SerializeField]
         protected Comparator m_BlueComparator;
 
-        [SerializeField]
-        [Tooltip("This color defines the 'threshold' value against which pixel channel equality is tested")]
-        protected Color32 m_ColorThreshold = new Color32();
+        protected Operator m_PreviousRedOperator;
+        protected Operand m_PreviousRedOperand;
+        protected Comparator m_PreviousRedComparator;
+        protected Operator m_PreviousGreenOperator;
+        protected Operand m_PreviousGreenOperand;
+        protected Comparator m_PreviousGreenComparator;
+        protected Operator m_PreviousBlueOperator;
+        protected Operand m_PreviousBlueOperand;
+        protected Comparator m_PreviousBlueComparator;
+
+        Dictionary<ComposerInputsAttribute, Type> m_JobTypes = AttributeUtils.FindAllComposerInputs();
+
+        Type m_CurrentRedType;
+        Type m_CurrentGreenType;
+        Type m_CurrentBlueType;
+
+        IJobParallelFor m_RedJob;
+        IJobParallelFor m_GreenJob;
+        IJobParallelFor m_BlueJob;
 
         void OnEnable()
         {
@@ -50,24 +72,50 @@ namespace BurstImageProcessing
 
         void Update()
         {
-
-        }
-
-        void OperandHandler()
-        {
-            switch (m_RedOperator)
+            if (m_PreviousRedOperator != m_RedOperator || m_PreviousRedComparator != m_RedComparator 
+                || m_PreviousRedOperand != m_RedOperand)
             {
-                case Operator.Add:
-                    break;
-                case Operator.BitwiseComplement:
-                    break;
-                case Operator.BitwiseExclusiveOr:
-                    break;
-                case Operator.BitwiseLeftShift:
-                    break;
-                case Operator.BitwiseRightShift:
-                    break;
+                var red = new ComposerInputsAttribute(m_RedOperator, m_RedComparator, m_RedOperand);
+                if (m_JobTypes.TryGetValue(red, out m_CurrentRedType))
+                {
+                    Debug.Log("current red type: " + m_CurrentRedType);
+
+                    m_RedJob = (IJobParallelFor)Activator.CreateInstance(m_CurrentRedType);
+                }
             }
+
+            if (m_PreviousGreenOperator != m_GreenOperator || m_PreviousGreenComparator != m_GreenComparator
+                || m_PreviousGreenOperand != m_GreenOperand)
+            {
+                var red = new ComposerInputsAttribute(m_GreenOperator, m_GreenComparator, m_GreenOperand);
+                if (m_JobTypes.TryGetValue(red, out m_CurrentGreenType))
+                {
+                    Debug.Log("current green type: " + m_CurrentGreenType);
+                    m_GreenJob = (IJobParallelFor)Activator.CreateInstance(m_CurrentGreenType);
+                }
+            }
+
+            if (m_PreviousBlueOperator != m_BlueOperator || m_PreviousBlueComparator != m_BlueComparator
+                || m_PreviousBlueOperand != m_BlueOperand)
+            {
+                var red = new ComposerInputsAttribute(m_BlueOperator, m_BlueComparator, m_BlueOperand);
+                if (m_JobTypes.TryGetValue(red, out m_CurrentBlueType))
+                {
+                    Debug.Log("current blue type: " + m_CurrentBlueType);
+                    m_BlueJob = (IJobParallelFor)Activator.CreateInstance(m_CurrentBlueType);
+                }
+            }
+
+
+            m_PreviousRedOperator = m_RedOperator;
+            m_PreviousRedComparator = m_RedComparator;
+            m_PreviousRedOperand = m_RedOperand;
+            m_PreviousGreenOperator = m_GreenOperator;
+            m_PreviousGreenComparator = m_GreenComparator;
+            m_PreviousGreenOperand = m_GreenOperand;
+            m_PreviousBlueOperator = m_BlueOperator;
+            m_PreviousBlueComparator = m_BlueComparator;
+            m_PreviousBlueOperand = m_BlueOperand;
         }
     }
 }
