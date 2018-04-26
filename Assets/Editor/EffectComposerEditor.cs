@@ -47,9 +47,7 @@ namespace BurstImageProcessing
                 "the 'Comparator' defines how the pixel value is compared against the Operand\n" +
                 "the 'Operand' defines what the Operator runs against to effect the pixel's value";
 
-        const string k_ColorThresholdHelp = "The color threshold defines the per-channel values we use " +
-                "to compare against a pixel's value to determine whether or not to effect that pixel";
-
+        static readonly GUIContent k_ColorThresholdLabel = new GUIContent("Color Threshold");
 
         public override void OnInspectorGUI()
         {
@@ -62,9 +60,9 @@ namespace BurstImageProcessing
             Channel("Process Green Channel", enableGreen, greenOperator, greenComparator, greenOperand);
             Channel("Process Blue Channel", enableBlue, blueOperator, blueComparator, blueOperand);
 
-            EditorGUILayout.HelpBox(k_ColorThresholdHelp, MessageType.Info);
-            EditorGUILayout.PropertyField(colorThreshold);
-
+            EditorGUILayout.Space();
+            //EditorGUILayout.PropertyField(colorThreshold);
+            colorThreshold.colorValue = EditorGUILayout.ColorField(k_ColorThresholdLabel, colorThreshold.colorValue, false, false, false);
             serializedObject.ApplyModifiedProperties();
         }
 
