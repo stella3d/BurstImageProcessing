@@ -12,6 +12,9 @@ namespace BurstImageProcessing
         [Range(0, 255)]
         protected byte m_AdditionValue;
 
+
+        [SerializeField]
+        protected bool m_EnableRed = true;
         [SerializeField]
         protected Operator m_RedOperator;
         [SerializeField]
@@ -20,11 +23,26 @@ namespace BurstImageProcessing
         protected Comparator m_RedComparator;
 
         [SerializeField]
+        protected bool m_EnableGreen = true;
+        [SerializeField]
+        protected Operator m_GreenOperator;
+        [SerializeField]
+        protected Operand m_GreenOperand;
+        [SerializeField]
+        protected Comparator m_GreenComparator;
+
+        [SerializeField]
+        protected bool m_EnableBlue = true;
+        [SerializeField]
         protected Operator m_BlueOperator;
         [SerializeField]
         protected Operand m_BlueOperand;
         [SerializeField]
         protected Comparator m_BlueComparator;
+
+        [SerializeField]
+        [Tooltip("This color defines the 'threshold' value against which pixel channel equality is tested")]
+        protected Color32 m_ColorThreshold = new Color32();
 
         void OnEnable()
         {
