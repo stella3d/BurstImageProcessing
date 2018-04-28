@@ -7,7 +7,7 @@ namespace BurstImageProcessing.Bitwise
     // at-value bitwise operation performed against the pixel's own data (self)
     [ComputeJobOptimization]
     [ComposerInputs(Operator.BitwiseComplement, Comparator.Equal, Operand.Self)]
-    public struct AtValueSelfComplementJob : IJobParallelFor
+    public struct AtThresholdSelfComplementJob : IJobParallelFor
     {
         public NativeSlice<byte> data;
         public byte threshold;
@@ -20,7 +20,7 @@ namespace BurstImageProcessing.Bitwise
 
     [ComputeJobOptimization]
     [ComposerInputs(Operator.BitwiseLeftShift, Comparator.Equal, Operand.Self)]
-    public struct AtValueSelfLeftShiftJob : IJobParallelFor
+    public struct AtThresholdSelfLeftShiftJob : IJobParallelFor
     {
         public NativeSlice<byte> data;
         public byte threshold;
@@ -33,7 +33,7 @@ namespace BurstImageProcessing.Bitwise
 
     [ComputeJobOptimization]
     [ComposerInputs(Operator.BitwiseRightShift, Comparator.Equal, Operand.Self)]
-    public struct AtValueSelfRightShiftJob : IJobParallelFor
+    public struct AtThresholdSelfRightShiftJob : IJobParallelFor
     {
         public NativeSlice<byte> data;
         public byte threshold;
@@ -47,7 +47,7 @@ namespace BurstImageProcessing.Bitwise
 
     [ComputeJobOptimization]
     [ComposerInputs(Operator.BitwiseExclusiveOr, Comparator.Equal, Operand.Self)]
-    public struct AtValueSelfExclusiveOrJob : IJobParallelFor
+    public struct AtThresholdSelfExclusiveOrJob : IJobParallelFor
     {
         public NativeSlice<byte> data;
         public byte threshold;
@@ -61,7 +61,7 @@ namespace BurstImageProcessing.Bitwise
     // perform bitwise operation against the threshold value instead of against the pixel's value
     [ComputeJobOptimization]
     [ComposerInputs(Operator.BitwiseComplement, Comparator.Equal, Operand.Other)]
-    public struct AtValueComplementJob : IJobParallelFor
+    public struct AtThresholdComplementJob : IJobParallelFor
     {
         public NativeSlice<byte> data;
         public byte threshold;
@@ -74,7 +74,7 @@ namespace BurstImageProcessing.Bitwise
 
     [ComputeJobOptimization]
     [ComposerInputs(Operator.BitwiseExclusiveOr, Comparator.Equal, Operand.Other)]
-    public struct AtValueExclusiveOrJob : IJobParallelFor
+    public struct AtThresholdExclusiveOrJob : IJobParallelFor
     {
         public NativeSlice<byte> data;
         public byte threshold;
@@ -87,7 +87,7 @@ namespace BurstImageProcessing.Bitwise
 
     [ComputeJobOptimization]
     [ComposerInputs(Operator.BitwiseLeftShift, Comparator.Equal, Operand.Other)]
-    public struct AtValueLeftShiftJob : IJobParallelFor
+    public struct AtThresholdLeftShiftJob : IJobParallelFor
     {
         public NativeSlice<byte> data;
         public byte threshold;
@@ -100,7 +100,7 @@ namespace BurstImageProcessing.Bitwise
 
     [ComputeJobOptimization]
     [ComposerInputs(Operator.BitwiseRightShift, Comparator.Equal, Operand.Other)]
-    public struct AtValueRightShiftJob : IJobParallelFor
+    public struct AtThresholdRightShiftJob : IJobParallelFor
     {
         public NativeSlice<byte> data;
         public byte threshold;

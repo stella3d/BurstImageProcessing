@@ -1,9 +1,13 @@
-﻿using BurstImageProcessing.Utils;
+﻿using BurstImageProcessing.Threshold.Bitwise;
+using BurstImageProcessing.Utils;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
+using Unity.Collections;
 using Unity.Jobs;
+using Unity.Jobs.LowLevel;
+using Unity.Jobs.LowLevel.Unsafe;
 using UnityEngine;
 
 namespace BurstImageProcessing
@@ -46,76 +50,227 @@ namespace BurstImageProcessing
         [SerializeField]
         protected Comparator m_BlueComparator;
 
-        protected Operator m_PreviousRedOperator;
-        protected Operand m_PreviousRedOperand;
-        protected Comparator m_PreviousRedComparator;
-        protected Operator m_PreviousGreenOperator;
-        protected Operand m_PreviousGreenOperand;
-        protected Comparator m_PreviousGreenComparator;
-        protected Operator m_PreviousBlueOperator;
-        protected Operand m_PreviousBlueOperand;
-        protected Comparator m_PreviousBlueComparator;
-
         Dictionary<ComposerInputsAttribute, Type> m_JobTypes = AttributeUtils.FindAllComposerInputs();
+
+        JobHandle m_RedJobHandle;
+        JobHandle m_GreenJobHandle;
+        JobHandle m_BlueJobHandle;
+        JobHandle m_DummyDependencyHandle;
 
         Type m_CurrentRedType;
         Type m_CurrentGreenType;
         Type m_CurrentBlueType;
 
-        IJobParallelFor m_RedJob;
-        IJobParallelFor m_GreenJob;
-        IJobParallelFor m_BlueJob;
+        const int k_PixelCount = 320 * 240;
+
+        NativeArray<Color32> m_Color32;
+        NativeSlice<byte> m_RedChannel;
+        NativeSlice<byte> m_GreenChannel;
+        NativeSlice<byte> m_BlueChannel;
 
         void OnEnable()
         {
+            m_Color32 = new NativeArray<Color32>(k_PixelCount, Allocator.Persistent);
+            for (int i = 0; i < k_PixelCount; i++)
+            {
+                m_Color32[i] = new Color32(60, 100, 120, 255);
+            }
+            var wholeSlice = new NativeSlice<Color32>(m_Color32);
+            m_RedChannel = wholeSlice.SliceWithStride<byte>(0);
+            m_BlueChannel = wholeSlice.SliceWithStride<byte>(1);
+            m_GreenChannel = wholeSlice.SliceWithStride<byte>(2);
+
+            m_DummyDependencyHandle = new JobHandle();
+            m_DummyDependencyHandle.Complete();
+        }
+
+        private void OnDisable()
+        {
+            m_Color32.Dispose();
         }
 
         void Update()
         {
-            if (m_PreviousRedOperator != m_RedOperator || m_PreviousRedComparator != m_RedComparator 
-                || m_PreviousRedOperand != m_RedOperand)
+            RedUpdate();
+            GreenUpdate();
+            BlueUpdate();
+        }
+
+        void LateUpdate()
+        {
+            m_RedJobHandle.Complete();
+            m_GreenJobHandle.Complete();
+            m_BlueJobHandle.Complete();
+        }
+
+        void RedUpdate()
+        {
+            if (!m_RedJobHandle.IsCompleted)
+                m_RedJobHandle.Complete();
+
+            // all the helper functions take a dependency handle, but the red channel always goes first and doesn't need one
+            ScheduleChannel(m_RedOperator, m_RedComparator, m_RedOperand, m_RedChannel, m_ColorThreshold.r, ref m_RedJobHandle, ref m_DummyDependencyHandle);
+        }
+
+        void GreenUpdate()
+        {
+            if (!m_GreenJobHandle.IsCompleted)
+                m_GreenJobHandle.Complete();
+
+            ScheduleChannel(m_GreenOperator, m_GreenComparator, m_GreenOperand, m_GreenChannel, m_ColorThreshold.g, ref m_GreenJobHandle, ref m_RedJobHandle);
+        }
+
+        void BlueUpdate()
+        {
+            if (!m_BlueJobHandle.IsCompleted)
+                m_BlueJobHandle.Complete();
+
+            ScheduleChannel(m_BlueOperator, m_BlueComparator, m_BlueOperand, m_BlueChannel, m_ColorThreshold.b, ref m_BlueJobHandle, ref m_GreenJobHandle);
+        }
+
+
+        void ScheduleChannel(Operator op, Comparator comparator, Operand operand,
+            NativeSlice<byte> data, byte threshold, ref JobHandle handle, ref JobHandle dependency)
+        {
+            switch (comparator)
             {
-                var red = new ComposerInputsAttribute(m_RedOperator, m_RedComparator, m_RedOperand);
-                if (m_JobTypes.TryGetValue(red, out m_CurrentRedType))
-                {
-                    Debug.Log("current red type: " + m_CurrentRedType);
-
-                    m_RedJob = (IJobParallelFor)Activator.CreateInstance(m_CurrentRedType);
-                }
+                case Comparator.Greater:
+                    switch (operand)
+                    {
+                        case Operand.Self:
+                            OverThresholdSelf(op, data, threshold, ref handle, ref dependency);
+                            break;
+                        case Operand.Other:
+                            OverThresholdOther(op, data, threshold, ref handle, ref dependency);
+                            break;
+                    }
+                    break;
+                case Comparator.Less:
+                    switch (operand)
+                    {
+                        case Operand.Self:
+                            UnderThresholdSelf(op, data, threshold, ref handle, ref dependency);
+                            break;
+                        case Operand.Other:
+                            UnderThresholdOther(op, data, threshold, ref handle, ref dependency);
+                            break;
+                    }
+                    break;
             }
+        }
 
-            if (m_PreviousGreenOperator != m_GreenOperator || m_PreviousGreenComparator != m_GreenComparator
-                || m_PreviousGreenOperand != m_GreenOperand)
+        void OverThresholdSelf(Operator op, NativeSlice<byte> data, byte threshold, ref JobHandle handle, ref JobHandle dependency)
+        {
+            switch(op)
             {
-                var red = new ComposerInputsAttribute(m_GreenOperator, m_GreenComparator, m_GreenOperand);
-                if (m_JobTypes.TryGetValue(red, out m_CurrentGreenType))
-                {
-                    Debug.Log("current green type: " + m_CurrentGreenType);
-                    m_GreenJob = (IJobParallelFor)Activator.CreateInstance(m_CurrentGreenType);
-                }
+                case Operator.BitwiseComplement:
+                    RGBSchedule.OverThresholdComplementSelf(data, threshold, ref handle, ref dependency);
+                    break;
+                case Operator.BitwiseExclusiveOr:
+                    RGBSchedule.OverThresholdExclusiveOrSelf(data, threshold, ref handle, ref dependency);
+                    break;
+                case Operator.BitwiseLeftShift:
+                    RGBSchedule.OverThresholdLeftShiftOther(data, threshold, ref handle, ref dependency);
+                    break;
+                case Operator.BitwiseRightShift:
+                    RGBSchedule.OverThresholdRightShiftOther(data, threshold, ref handle, ref dependency);
+                    break;
             }
+        }
 
-            if (m_PreviousBlueOperator != m_BlueOperator || m_PreviousBlueComparator != m_BlueComparator
-                || m_PreviousBlueOperand != m_BlueOperand)
+        void EqualThresholdSelf(Operator op, NativeSlice<byte> data, byte threshold, ref JobHandle handle, ref JobHandle dependency)
+        {
+            switch (op)
             {
-                var red = new ComposerInputsAttribute(m_BlueOperator, m_BlueComparator, m_BlueOperand);
-                if (m_JobTypes.TryGetValue(red, out m_CurrentBlueType))
-                {
-                    Debug.Log("current blue type: " + m_CurrentBlueType);
-                    m_BlueJob = (IJobParallelFor)Activator.CreateInstance(m_CurrentBlueType);
-                }
+                case Operator.BitwiseComplement:
+                    RGBSchedule.AtThresholdComplementSelf(data, threshold, ref handle, ref dependency);
+                    break;
+                case Operator.BitwiseExclusiveOr:
+                    RGBSchedule.AtThresholdExclusiveOrSelf(data, threshold, ref handle, ref dependency);
+                    break;
+                case Operator.BitwiseLeftShift:
+                    RGBSchedule.AtThresholdLeftShiftSelf(data, threshold, ref handle, ref dependency);
+                    break;
+                case Operator.BitwiseRightShift:
+                    RGBSchedule.AtThresholdRightShiftSelf(data, threshold, ref handle, ref dependency);
+                    break;
             }
+        }
 
+        void UnderThresholdSelf(Operator op, NativeSlice<byte> data, byte threshold, ref JobHandle handle, ref JobHandle dependency)
+        {
+            switch (op)
+            {
+                case Operator.BitwiseComplement:
+                    RGBSchedule.UnderThresholdComplementSelf(data, threshold, ref handle, ref dependency);
+                    break;
+                case Operator.BitwiseExclusiveOr:
+                    RGBSchedule.UnderThresholdExclusiveOrSelf(data, threshold, ref handle, ref dependency);
+                    break;
+                case Operator.BitwiseLeftShift:
+                    RGBSchedule.UnderThresholdLeftShiftSelf(data, threshold, ref handle, ref dependency);
+                    break;
+                case Operator.BitwiseRightShift:
+                    RGBSchedule.UnderThresholdRightShiftSelf(data, threshold, ref handle, ref dependency);
+                    break;
+            }
+        }
 
-            m_PreviousRedOperator = m_RedOperator;
-            m_PreviousRedComparator = m_RedComparator;
-            m_PreviousRedOperand = m_RedOperand;
-            m_PreviousGreenOperator = m_GreenOperator;
-            m_PreviousGreenComparator = m_GreenComparator;
-            m_PreviousGreenOperand = m_GreenOperand;
-            m_PreviousBlueOperator = m_BlueOperator;
-            m_PreviousBlueComparator = m_BlueComparator;
-            m_PreviousBlueOperand = m_BlueOperand;
+        void OverThresholdOther(Operator op, NativeSlice<byte> data, byte threshold, ref JobHandle handle, ref JobHandle dependency)
+        {
+            switch (op)
+            {
+                case Operator.BitwiseComplement:
+                    RGBSchedule.OverThresholdComplementOther(data, threshold, ref handle, ref dependency);
+                    break;
+                case Operator.BitwiseExclusiveOr:
+                    RGBSchedule.OverThresholdExclusiveOrOther(data, threshold, ref handle, ref dependency);
+                    break;
+                case Operator.BitwiseLeftShift:
+                    RGBSchedule.OverThresholdLeftShiftOther(data, threshold, ref handle, ref dependency);
+                    break;
+                case Operator.BitwiseRightShift:
+                    RGBSchedule.OverThresholdRightShiftOther(data, threshold, ref handle, ref dependency);
+                    break;
+            }
+        }
+
+        void EqualThresholdOther(Operator op, NativeSlice<byte> data, byte threshold, ref JobHandle handle, ref JobHandle dependency)
+        {
+            switch (op)
+            {
+                case Operator.BitwiseComplement:
+                    RGBSchedule.AtThresholdComplementOther(data, threshold, ref handle, ref dependency);
+                    break;
+                case Operator.BitwiseExclusiveOr:
+                    RGBSchedule.AtThresholdExclusiveOrOther(data, threshold, ref handle, ref dependency);
+                    break;
+                case Operator.BitwiseLeftShift:
+                    RGBSchedule.AtThresholdLeftShiftOther(data, threshold, ref handle, ref dependency);
+                    break;
+                case Operator.BitwiseRightShift:
+                    RGBSchedule.AtThresholdRightShiftOther(data, threshold, ref handle, ref dependency);
+                    break;
+            }
+        }
+
+        void UnderThresholdOther(Operator op, NativeSlice<byte> data, byte threshold, ref JobHandle handle, ref JobHandle dependency)
+        {
+            switch (op)
+            {
+                case Operator.BitwiseComplement:
+                    RGBSchedule.UnderThresholdComplementOther(data, threshold, ref handle, ref dependency);
+                    break;
+                case Operator.BitwiseExclusiveOr:
+                    RGBSchedule.UnderThresholdExclusiveOrOther(data, threshold, ref handle, ref dependency);
+                    break;
+                case Operator.BitwiseLeftShift:
+                    RGBSchedule.UnderThresholdLeftShiftOther(data, threshold, ref handle, ref dependency);
+                    break;
+                case Operator.BitwiseRightShift:
+                    RGBSchedule.UnderThresholdRightShiftOther(data, threshold, ref handle, ref dependency);
+                    break;
+            }
         }
     }
 }

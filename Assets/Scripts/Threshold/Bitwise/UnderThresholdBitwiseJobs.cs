@@ -47,7 +47,7 @@ namespace BurstImageProcessing.Bitwise
 
     [ComputeJobOptimization]
     [ComposerInputs(Operator.BitwiseExclusiveOr, Comparator.Less, Operand.Self)]
-    public struct UnderThresholdSelfExclusiveOrJob : IJobParallelFor
+    public struct UnderThresholdSelfExclusiveOrJob : IJobParallelFor 
     {
         public NativeSlice<byte> data;
         public byte threshold;
@@ -101,7 +101,7 @@ namespace BurstImageProcessing.Bitwise
 
     [ComputeJobOptimization]
     [ComposerInputs(Operator.BitwiseRightShift, Comparator.Less, Operand.Other)]
-    public struct UnderThresholdRightShiftJob : IJobParallelFor
+    public struct UnderThresholdRightShiftJob : IJobParallelFor 
     {
         public NativeSlice<byte> data;
         public byte threshold;

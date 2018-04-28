@@ -23,6 +23,7 @@ namespace BurstImageProcessing
 
         SerializedProperty colorThreshold;
 
+        SerializedProperty additionValue;
 
         void OnEnable()
         {
@@ -40,6 +41,8 @@ namespace BurstImageProcessing
             blueOperand = serializedObject.FindProperty("m_BlueOperand");
 
             colorThreshold = serializedObject.FindProperty("m_ColorThreshold");
+
+            additionValue = serializedObject.FindProperty("m_AdditionValue");
         }
 
         const string k_PerChannelHelp = "For each color channel, there are 3 things to select:\n" +
@@ -61,8 +64,11 @@ namespace BurstImageProcessing
             Channel("Process Blue Channel", enableBlue, blueOperator, blueComparator, blueOperand);
 
             EditorGUILayout.Space();
-            //EditorGUILayout.PropertyField(colorThreshold);
             colorThreshold.colorValue = EditorGUILayout.ColorField(k_ColorThresholdLabel, colorThreshold.colorValue, false, false, false);
+
+            EditorGUILayout.Space();
+            EditorGUILayout.PropertyField(additionValue);
+
             serializedObject.ApplyModifiedProperties();
         }
 
