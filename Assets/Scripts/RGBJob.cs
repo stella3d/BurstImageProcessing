@@ -1,10 +1,5 @@
 ﻿using BurstImageProcessing.Bitwise;
 using BurstImageProcessing.Threshold.Bitwise;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Unity.Collections;
 using Unity.Jobs;
 
@@ -14,24 +9,22 @@ namespace BurstImageProcessing
     {
         public static void OverThresholdExclusiveOrOther(NativeSlice<byte> channel, byte threshold, ref JobHandle handle, ref JobHandle dependency)
         {
-            var job = new OverThresholdExclusiveOrJob()
+            handle = new OverThresholdExclusiveOrJob()
             {
                 data = channel,
                 threshold = threshold
-            };
-
-            handle = job.Schedule(channel.Length, 512, dependency);
+            }
+            .Schedule(channel.Length, 512, dependency);
         }
 
         public static void OverThresholdExclusiveOrSelf(NativeSlice<byte> channel, byte threshold, ref JobHandle handle, ref JobHandle dependency)
         {
-            var job = new OverThresholdSelfExclusiveOrJob()
+            handle = new OverThresholdSelfExclusiveOrJob()
             {
                 data = channel,
                 threshold = threshold
-            };
-
-            handle = job.Schedule(channel.Length, 512, dependency);
+            }
+            .Schedule(channel.Length, 512, dependency);
         }
 
         public static void OverThresholdComplementOther(NativeSlice<byte> channel, byte threshold, ref JobHandle handle, ref JobHandle dependency)

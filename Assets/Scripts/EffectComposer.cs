@@ -1,18 +1,9 @@
-﻿using BurstImageProcessing.Threshold.Bitwise;
-using BurstImageProcessing.Utils;
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Reflection;
-using Unity.Collections;
+﻿using Unity.Collections;
 using Unity.Jobs;
-using Unity.Jobs.LowLevel;
-using Unity.Jobs.LowLevel.Unsafe;
 using UnityEngine;
 
 namespace BurstImageProcessing
 {
-    [ExecuteInEditMode]
     public class EffectComposer : MonoBehaviour
     {
         [SerializeField]
@@ -56,12 +47,12 @@ namespace BurstImageProcessing
         NativeSlice<byte> m_GreenChannel;
         NativeSlice<byte> m_BlueChannel;
 
-        int m_PixelCount = 1024 * 576;
+        const int k_DefaultPixelCount = 1024 * 576;
 
         void OnEnable()
         {
             if(!m_Pixels.IsCreated)
-                m_Pixels = new NativeArray<Color32>(m_PixelCount, Allocator.Persistent);
+                m_Pixels = new NativeArray<Color32>(k_DefaultPixelCount, Allocator.Persistent);
 
             var wholeSlice = new NativeSlice<Color32>(m_Pixels);
             m_RedChannel = wholeSlice.SliceWithStride<byte>(0);
@@ -79,9 +70,22 @@ namespace BurstImageProcessing
 
         void Update()
         {
-            RedUpdate();
-            GreenUpdate();
-            BlueUpdate();
+            if(m_EnableRed)
+                // all the helper functions take a dependency handle, but the red channel always goes first and doesn't need one
+                ScheduleChannel(m_RedOperator, m_RedComparator, m_RedOperand, m_RedChannel, m_ColorThreshold.r, ref m_RedJobHandle, ref m_DummyDependencyHandle);
+
+            if (m_EnableGreen)
+                ScheduleChannel(m_GreenOperator, m_GreenComparator, m_GreenOperand, m_GreenChannel, m_ColorThreshold.g, ref m_GreenJobHandle, ref m_RedJobHandle);
+
+            if (m_EnableBlue)
+            {
+                if(m_EnableGreen)
+                    ScheduleChannel(m_BlueOperator, m_BlueComparator, m_BlueOperand, m_BlueChannel, m_ColorThreshold.b, ref m_BlueJobHandle, ref m_GreenJobHandle);
+                else if (m_EnableRed)
+                    ScheduleChannel(m_BlueOperator, m_BlueComparator, m_BlueOperand, m_BlueChannel, m_ColorThreshold.b, ref m_BlueJobHandle, ref m_RedJobHandle);
+                else
+                    ScheduleChannel(m_BlueOperator, m_BlueComparator, m_BlueOperand, m_BlueChannel, m_ColorThreshold.b, ref m_BlueJobHandle, ref m_DummyDependencyHandle);
+            }
         }
 
         void LateUpdate()
@@ -89,40 +93,6 @@ namespace BurstImageProcessing
             m_RedJobHandle.Complete();
             m_GreenJobHandle.Complete();
             m_BlueJobHandle.Complete();
-        }
-
-        void RedUpdate()
-        {
-            if (!m_RedJobHandle.IsCompleted)
-                m_RedJobHandle.Complete();
-
-            if (!m_EnableRed)
-                return;
-
-            // all the helper functions take a dependency handle, but the red channel always goes first and doesn't need one
-            ScheduleChannel(m_RedOperator, m_RedComparator, m_RedOperand, m_RedChannel, m_ColorThreshold.r, ref m_RedJobHandle, ref m_DummyDependencyHandle);
-        }
-
-        void GreenUpdate()
-        {
-            //if (!m_GreenJobHandle.IsCompleted)
-            //    m_GreenJobHandle.Complete();
-
-            if (!m_EnableGreen)
-                return;
-
-            ScheduleChannel(m_GreenOperator, m_GreenComparator, m_GreenOperand, m_GreenChannel, m_ColorThreshold.g, ref m_GreenJobHandle, ref m_RedJobHandle);
-        }
-
-        void BlueUpdate()
-        {
-            //if (!m_BlueJobHandle.IsCompleted)
-            //    m_BlueJobHandle.Complete();
-
-            if (!m_EnableBlue)
-                return;
-
-            ScheduleChannel(m_BlueOperator, m_BlueComparator, m_BlueOperand, m_BlueChannel, m_ColorThreshold.b, ref m_BlueJobHandle, ref m_GreenJobHandle);
         }
 
         public void GetProcessedData(Color32[] pixels)
