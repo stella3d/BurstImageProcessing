@@ -10,7 +10,7 @@ using Unity.Jobs;
 
 namespace BurstImageProcessing
 {
-    public static class RGBSchedule
+    public static class RGBJob
     {
         public static void OverThresholdExclusiveOrOther(NativeSlice<byte> channel, byte threshold, ref JobHandle handle, ref JobHandle dependency)
         {

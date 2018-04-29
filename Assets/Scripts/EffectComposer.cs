@@ -16,11 +16,7 @@ namespace BurstImageProcessing
     public class EffectComposer : MonoBehaviour
     {
         [SerializeField]
-        [Range(0, 255)]
-        protected byte m_AdditionValue;
-
-        [SerializeField]
-        [Tooltip("This color defines the 'threshold' value against which pixel channel equality is tested")]
+        [Tooltip("This color defines the 'threshold' value against which a pixel's color channel equality is tested")]
         protected Color32 m_ColorThreshold = new Color32();
 
         [SerializeField]
@@ -50,32 +46,24 @@ namespace BurstImageProcessing
         [SerializeField]
         protected Comparator m_BlueComparator;
 
-        Dictionary<ComposerInputsAttribute, Type> m_JobTypes = AttributeUtils.FindAllComposerInputs();
-
         JobHandle m_RedJobHandle;
         JobHandle m_GreenJobHandle;
         JobHandle m_BlueJobHandle;
         JobHandle m_DummyDependencyHandle;
 
-        Type m_CurrentRedType;
-        Type m_CurrentGreenType;
-        Type m_CurrentBlueType;
-
-        const int k_PixelCount = 320 * 240;
-
-        NativeArray<Color32> m_Color32;
+        NativeArray<Color32> m_Pixels;
         NativeSlice<byte> m_RedChannel;
         NativeSlice<byte> m_GreenChannel;
         NativeSlice<byte> m_BlueChannel;
 
+        int m_PixelCount = 1024 * 576;
+
         void OnEnable()
         {
-            m_Color32 = new NativeArray<Color32>(k_PixelCount, Allocator.Persistent);
-            for (int i = 0; i < k_PixelCount; i++)
-            {
-                m_Color32[i] = new Color32(60, 100, 120, 255);
-            }
-            var wholeSlice = new NativeSlice<Color32>(m_Color32);
+            if(!m_Pixels.IsCreated)
+                m_Pixels = new NativeArray<Color32>(m_PixelCount, Allocator.Persistent);
+
+            var wholeSlice = new NativeSlice<Color32>(m_Pixels);
             m_RedChannel = wholeSlice.SliceWithStride<byte>(0);
             m_GreenChannel = wholeSlice.SliceWithStride<byte>(1);
             m_BlueChannel = wholeSlice.SliceWithStride<byte>(2);
@@ -86,7 +74,7 @@ namespace BurstImageProcessing
 
         private void OnDisable()
         {
-            m_Color32.Dispose();
+            m_Pixels.Dispose();
         }
 
         void Update()
@@ -108,26 +96,70 @@ namespace BurstImageProcessing
             if (!m_RedJobHandle.IsCompleted)
                 m_RedJobHandle.Complete();
 
+            if (!m_EnableRed)
+                return;
+
             // all the helper functions take a dependency handle, but the red channel always goes first and doesn't need one
             ScheduleChannel(m_RedOperator, m_RedComparator, m_RedOperand, m_RedChannel, m_ColorThreshold.r, ref m_RedJobHandle, ref m_DummyDependencyHandle);
         }
 
         void GreenUpdate()
         {
-            if (!m_GreenJobHandle.IsCompleted)
-                m_GreenJobHandle.Complete();
+            //if (!m_GreenJobHandle.IsCompleted)
+            //    m_GreenJobHandle.Complete();
+
+            if (!m_EnableGreen)
+                return;
 
             ScheduleChannel(m_GreenOperator, m_GreenComparator, m_GreenOperand, m_GreenChannel, m_ColorThreshold.g, ref m_GreenJobHandle, ref m_RedJobHandle);
         }
 
         void BlueUpdate()
         {
-            if (!m_BlueJobHandle.IsCompleted)
-                m_BlueJobHandle.Complete();
+            //if (!m_BlueJobHandle.IsCompleted)
+            //    m_BlueJobHandle.Complete();
+
+            if (!m_EnableBlue)
+                return;
 
             ScheduleChannel(m_BlueOperator, m_BlueComparator, m_BlueOperand, m_BlueChannel, m_ColorThreshold.b, ref m_BlueJobHandle, ref m_GreenJobHandle);
         }
 
+        public void GetProcessedData(Color32[] pixels)
+        {
+            if (pixels.Length != m_Pixels.Length)
+                Debug.LogError("output pixel array length must be equal to the current native pixel array length", this);
+
+            m_RedJobHandle.Complete();
+            m_GreenJobHandle.Complete();
+            m_BlueJobHandle.Complete();
+
+            m_Pixels.CopyTo(pixels);
+        }
+
+        public void UpdateImageData(Color32[] pixels)
+        {
+            if (pixels.Length != m_Pixels.Length)
+                Debug.LogError("input pixel array length must be equal to the current native pixel array length", this);
+
+            m_Pixels.CopyFrom(pixels);
+        }
+
+        // for use when the size changes
+        public void ReInitialize(Color32[] pixels)
+        {
+            if (!m_BlueJobHandle.IsCompleted)
+                m_BlueJobHandle.Complete();
+
+            if(m_Pixels.IsCreated)
+                m_Pixels.Dispose();
+
+            m_Pixels = new NativeArray<Color32>(pixels.Length, Allocator.Persistent);
+            var wholeSlice = new NativeSlice<Color32>(m_Pixels);
+            m_RedChannel = wholeSlice.SliceWithStride<byte>(0);
+            m_GreenChannel = wholeSlice.SliceWithStride<byte>(1);
+            m_BlueChannel = wholeSlice.SliceWithStride<byte>(2);
+        }
 
         void ScheduleChannel(Operator op, Comparator comparator, Operand operand,
             NativeSlice<byte> data, byte threshold, ref JobHandle handle, ref JobHandle dependency)
@@ -142,6 +174,17 @@ namespace BurstImageProcessing
                             break;
                         case Operand.Other:
                             OverThresholdOther(op, data, threshold, ref handle, ref dependency);
+                            break;
+                    }
+                    break;
+                case Comparator.Equal:
+                    switch (operand)
+                    {
+                        case Operand.Self:
+                            EqualThresholdSelf(op, data, threshold, ref handle, ref dependency);
+                            break;
+                        case Operand.Other:
+                            EqualThresholdOther(op, data, threshold, ref handle, ref dependency);
                             break;
                     }
                     break;
@@ -164,16 +207,16 @@ namespace BurstImageProcessing
             switch(op)
             {
                 case Operator.BitwiseComplement:
-                    RGBSchedule.OverThresholdComplementSelf(data, threshold, ref handle, ref dependency);
+                    RGBJob.OverThresholdComplementSelf(data, threshold, ref handle, ref dependency);
                     break;
                 case Operator.BitwiseExclusiveOr:
-                    RGBSchedule.OverThresholdExclusiveOrSelf(data, threshold, ref handle, ref dependency);
+                    RGBJob.OverThresholdExclusiveOrSelf(data, threshold, ref handle, ref dependency);
                     break;
                 case Operator.BitwiseLeftShift:
-                    RGBSchedule.OverThresholdLeftShiftOther(data, threshold, ref handle, ref dependency);
+                    RGBJob.OverThresholdLeftShiftOther(data, threshold, ref handle, ref dependency);
                     break;
                 case Operator.BitwiseRightShift:
-                    RGBSchedule.OverThresholdRightShiftOther(data, threshold, ref handle, ref dependency);
+                    RGBJob.OverThresholdRightShiftOther(data, threshold, ref handle, ref dependency);
                     break;
             }
         }
@@ -183,16 +226,16 @@ namespace BurstImageProcessing
             switch (op)
             {
                 case Operator.BitwiseComplement:
-                    RGBSchedule.AtThresholdComplementSelf(data, threshold, ref handle, ref dependency);
+                    RGBJob.AtThresholdComplementSelf(data, threshold, ref handle, ref dependency);
                     break;
                 case Operator.BitwiseExclusiveOr:
-                    RGBSchedule.AtThresholdExclusiveOrSelf(data, threshold, ref handle, ref dependency);
+                    RGBJob.AtThresholdExclusiveOrSelf(data, threshold, ref handle, ref dependency);
                     break;
                 case Operator.BitwiseLeftShift:
-                    RGBSchedule.AtThresholdLeftShiftSelf(data, threshold, ref handle, ref dependency);
+                    RGBJob.AtThresholdLeftShiftSelf(data, threshold, ref handle, ref dependency);
                     break;
                 case Operator.BitwiseRightShift:
-                    RGBSchedule.AtThresholdRightShiftSelf(data, threshold, ref handle, ref dependency);
+                    RGBJob.AtThresholdRightShiftSelf(data, threshold, ref handle, ref dependency);
                     break;
             }
         }
@@ -202,16 +245,16 @@ namespace BurstImageProcessing
             switch (op)
             {
                 case Operator.BitwiseComplement:
-                    RGBSchedule.UnderThresholdComplementSelf(data, threshold, ref handle, ref dependency);
+                    RGBJob.UnderThresholdComplementSelf(data, threshold, ref handle, ref dependency);
                     break;
                 case Operator.BitwiseExclusiveOr:
-                    RGBSchedule.UnderThresholdExclusiveOrSelf(data, threshold, ref handle, ref dependency);
+                    RGBJob.UnderThresholdExclusiveOrSelf(data, threshold, ref handle, ref dependency);
                     break;
                 case Operator.BitwiseLeftShift:
-                    RGBSchedule.UnderThresholdLeftShiftSelf(data, threshold, ref handle, ref dependency);
+                    RGBJob.UnderThresholdLeftShiftSelf(data, threshold, ref handle, ref dependency);
                     break;
                 case Operator.BitwiseRightShift:
-                    RGBSchedule.UnderThresholdRightShiftSelf(data, threshold, ref handle, ref dependency);
+                    RGBJob.UnderThresholdRightShiftSelf(data, threshold, ref handle, ref dependency);
                     break;
             }
         }
@@ -221,16 +264,16 @@ namespace BurstImageProcessing
             switch (op)
             {
                 case Operator.BitwiseComplement:
-                    RGBSchedule.OverThresholdComplementOther(data, threshold, ref handle, ref dependency);
+                    RGBJob.OverThresholdComplementOther(data, threshold, ref handle, ref dependency);
                     break;
                 case Operator.BitwiseExclusiveOr:
-                    RGBSchedule.OverThresholdExclusiveOrOther(data, threshold, ref handle, ref dependency);
+                    RGBJob.OverThresholdExclusiveOrOther(data, threshold, ref handle, ref dependency);
                     break;
                 case Operator.BitwiseLeftShift:
-                    RGBSchedule.OverThresholdLeftShiftOther(data, threshold, ref handle, ref dependency);
+                    RGBJob.OverThresholdLeftShiftOther(data, threshold, ref handle, ref dependency);
                     break;
                 case Operator.BitwiseRightShift:
-                    RGBSchedule.OverThresholdRightShiftOther(data, threshold, ref handle, ref dependency);
+                    RGBJob.OverThresholdRightShiftOther(data, threshold, ref handle, ref dependency);
                     break;
             }
         }
@@ -240,16 +283,16 @@ namespace BurstImageProcessing
             switch (op)
             {
                 case Operator.BitwiseComplement:
-                    RGBSchedule.AtThresholdComplementOther(data, threshold, ref handle, ref dependency);
+                    RGBJob.AtThresholdComplementOther(data, threshold, ref handle, ref dependency);
                     break;
                 case Operator.BitwiseExclusiveOr:
-                    RGBSchedule.AtThresholdExclusiveOrOther(data, threshold, ref handle, ref dependency);
+                    RGBJob.AtThresholdExclusiveOrOther(data, threshold, ref handle, ref dependency);
                     break;
                 case Operator.BitwiseLeftShift:
-                    RGBSchedule.AtThresholdLeftShiftOther(data, threshold, ref handle, ref dependency);
+                    RGBJob.AtThresholdLeftShiftOther(data, threshold, ref handle, ref dependency);
                     break;
                 case Operator.BitwiseRightShift:
-                    RGBSchedule.AtThresholdRightShiftOther(data, threshold, ref handle, ref dependency);
+                    RGBJob.AtThresholdRightShiftOther(data, threshold, ref handle, ref dependency);
                     break;
             }
         }
@@ -259,16 +302,16 @@ namespace BurstImageProcessing
             switch (op)
             {
                 case Operator.BitwiseComplement:
-                    RGBSchedule.UnderThresholdComplementOther(data, threshold, ref handle, ref dependency);
+                    RGBJob.UnderThresholdComplementOther(data, threshold, ref handle, ref dependency);
                     break;
                 case Operator.BitwiseExclusiveOr:
-                    RGBSchedule.UnderThresholdExclusiveOrOther(data, threshold, ref handle, ref dependency);
+                    RGBJob.UnderThresholdExclusiveOrOther(data, threshold, ref handle, ref dependency);
                     break;
                 case Operator.BitwiseLeftShift:
-                    RGBSchedule.UnderThresholdLeftShiftOther(data, threshold, ref handle, ref dependency);
+                    RGBJob.UnderThresholdLeftShiftOther(data, threshold, ref handle, ref dependency);
                     break;
                 case Operator.BitwiseRightShift:
-                    RGBSchedule.UnderThresholdRightShiftOther(data, threshold, ref handle, ref dependency);
+                    RGBJob.UnderThresholdRightShiftOther(data, threshold, ref handle, ref dependency);
                     break;
             }
         }

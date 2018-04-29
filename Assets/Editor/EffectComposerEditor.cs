@@ -66,9 +66,6 @@ namespace BurstImageProcessing
             EditorGUILayout.Space();
             colorThreshold.colorValue = EditorGUILayout.ColorField(k_ColorThresholdLabel, colorThreshold.colorValue, false, false, false);
 
-            EditorGUILayout.Space();
-            EditorGUILayout.PropertyField(additionValue);
-
             serializedObject.ApplyModifiedProperties();
         }
 

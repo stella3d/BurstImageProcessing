@@ -2,8 +2,8 @@
 {
     public enum Operator
     {
-        Add,
-        Subtract,
+        //Add,
+        //Subtract,
         BitwiseComplement,
         BitwiseExclusiveOr,
         BitwiseLeftShift,

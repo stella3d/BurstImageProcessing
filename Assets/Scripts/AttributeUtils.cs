@@ -21,9 +21,6 @@ namespace BurstImageProcessing.Utils
             return types;
         }
 
-
-
-
         static Dictionary<ComposerInputsAttribute, Type> GetTypesWithComposerInputsAttribute(Assembly assembly)
         {
             var dict = new Dictionary<ComposerInputsAttribute, Type>();
