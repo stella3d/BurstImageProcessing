@@ -6,8 +6,6 @@ This project is *experimental & unofficial*, a **proof-of-concept**.  Don't try 
 
 This demo demonstrates processing input from a webcam in real time. The main bottleneck in doing this is copying data from the webcam and back to a texture.  those problems haven't been solved yet, and are two big roadblocks to practical use of this approach.
 
-The effect composer is the main focus here : you can find it on the `WebcamDisplay` object in the `WebcamComposerDemo` scene.
-
 The [effect composer](/Assets/Scripts/EffectComposer.cs) allows you to define the image effect in a granular , per channel way.
 You can find it on the `WebcamDisplay` object in the `WebcamComposerDemo` scene.
 
