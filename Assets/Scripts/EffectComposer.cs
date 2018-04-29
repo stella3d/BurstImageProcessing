@@ -77,8 +77,8 @@ namespace BurstImageProcessing
             }
             var wholeSlice = new NativeSlice<Color32>(m_Color32);
             m_RedChannel = wholeSlice.SliceWithStride<byte>(0);
-            m_BlueChannel = wholeSlice.SliceWithStride<byte>(1);
-            m_GreenChannel = wholeSlice.SliceWithStride<byte>(2);
+            m_GreenChannel = wholeSlice.SliceWithStride<byte>(1);
+            m_BlueChannel = wholeSlice.SliceWithStride<byte>(2);
 
             m_DummyDependencyHandle = new JobHandle();
             m_DummyDependencyHandle.Complete();
