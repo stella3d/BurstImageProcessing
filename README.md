@@ -18,4 +18,6 @@ There's three factors for each channel in the composer:
  
   3) the [Operand](/Assets/Scripts/Constants/Operand.cs), which defines whether the Operator works against the pixel's own value or the threshold value.  `Self` means operate on the pixel's value, `Other` means operate on the threshold value.
   
-In addition, you can also enable / disable processing for each color channel.
+In addition, you can also enable / disable processing for each color channel, as well as changing the value of the color threshold.
+
+If this sounds confusing, i would encourage you to just try out the demo scene and see how the image processing changes as you change the parameters.
