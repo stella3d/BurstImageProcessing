@@ -244,8 +244,8 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 617708492}
   m_LocalRotation: {x: 0, y: -0.7071068, z: 0.7071068, w: 0}
-  m_LocalPosition: {x: 9.81, y: 1.3, z: -2.12}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalPosition: {x: 11.75, y: 1.3, z: -2.12}
+  m_LocalScale: {x: 1.6, y: 1, z: 0.9}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 0
@@ -283,6 +283,7 @@ MonoBehaviour:
   m_WebcamIndex: 1
   m_WebcamTextureSize: {x: 1024, y: 576}
   m_Texture: {fileID: 2800000, guid: c506ed7f5ca490147964725fe4200b2f, type: 3}
+  m_TargetRenderer: {fileID: 617708494}
   m_Composer: {fileID: 1378650432}
 --- !u!23 &1378650429
 MeshRenderer:

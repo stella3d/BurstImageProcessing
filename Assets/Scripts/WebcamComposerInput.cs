@@ -1,5 +1,8 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using Unity.Collections;
+using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
 
 namespace BurstImageProcessing
@@ -18,17 +21,28 @@ namespace BurstImageProcessing
         [Tooltip("The texture we will copy our processed data into")]
         Texture2D m_Texture;
 
+        Texture2D m_DynamicTexture;
+
+        [SerializeField]
+        Renderer m_TargetRenderer;
+
         WebCamDevice m_CamDevice;
         WebCamTexture m_CamTexture;
 
         Color32[] m_Data;
 
+        IntPtr m_ProcessedDataPtr;
+
         [SerializeField]
         EffectComposer m_Composer;
 
-        void OnEnable()
+        NativeArray<Color32> m_NativeColor;
+
+        unsafe void OnEnable()
         {
             m_Data = new Color32[m_WebcamTextureSize.x * m_WebcamTextureSize.y];
+            m_NativeColor = new NativeArray<Color32>(m_Data, Allocator.Persistent);
+
             m_Composer.ReInitialize(m_Data);
 
             if (m_Composer == null)
@@ -42,7 +56,15 @@ namespace BurstImageProcessing
             Renderer renderer = GetComponent<Renderer>();
             renderer.material.mainTexture = m_CamTexture;
 
+            m_DynamicTexture = new Texture2D(m_WebcamTextureSize.x, m_WebcamTextureSize.y, TextureFormat.RGBA32, false);
+            m_TargetRenderer.material.mainTexture = m_DynamicTexture;
+
             m_CamTexture.Play();
+        }
+
+        private void OnDisable()
+        {
+            m_NativeColor.Dispose();
         }
 
         void Update()
@@ -53,9 +75,9 @@ namespace BurstImageProcessing
 
         void LateUpdate()
         {
-            m_Composer.GetProcessedData(m_Data);
-            m_Texture.SetPixels32(0, 0, m_WebcamTextureSize.x, m_WebcamTextureSize.y, m_Data);
-            m_Texture.Apply(false);
+            var byteCount = m_Composer.GetProcessedDataPtr(out m_ProcessedDataPtr);
+            m_DynamicTexture.LoadRawTextureData(m_ProcessedDataPtr, byteCount);
+            m_DynamicTexture.Apply(false);
         }
     }
 }

@@ -1,5 +1,9 @@
-﻿using Unity.Collections;
+﻿using System;
+using Unity.Collections;
+using Unity.Collections.LowLevel.Unsafe;
 using Unity.Jobs;
+using Unity.Jobs.LowLevel;
+using Unity.Jobs.LowLevel.Unsafe;
 using UnityEngine;
 
 namespace BurstImageProcessing
@@ -105,6 +109,19 @@ namespace BurstImageProcessing
             m_BlueJobHandle.Complete();
 
             m_Pixels.CopyTo(pixels);
+        }
+
+        Texture2D m_DynamicTexture;
+
+        // returns byte count
+        unsafe public int GetProcessedDataPtr(out IntPtr ptr)
+        {
+            m_RedJobHandle.Complete();
+            m_GreenJobHandle.Complete();
+            m_BlueJobHandle.Complete();
+
+            ptr = (IntPtr)m_Pixels.GetUnsafeReadOnlyPtr();
+            return m_Pixels.Length * sizeof(Color32);
         }
 
         public void UpdateImageData(Color32[] pixels)

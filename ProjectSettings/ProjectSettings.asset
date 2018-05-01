@@ -553,7 +553,7 @@ PlayerSettings:
   scriptingBackend: {}
   il2cppCompilerConfiguration: {}
   incrementalIl2cppBuild: {}
-  allowUnsafeCode: 0
+  allowUnsafeCode: 1
   additionalIl2CppArgs: 
   scriptingRuntimeVersion: 1
   apiCompatibilityLevelPerPlatform: {}
@@ -635,7 +635,7 @@ PlayerSettings:
   cloudServicesEnabled:
     UNet: 1
   facebookSdkVersion: 7.9.4
-  apiCompatibilityLevel: 2
+  apiCompatibilityLevel: 3
   cloudProjectId: 
   projectName: Template_3D
   organizationId: 
