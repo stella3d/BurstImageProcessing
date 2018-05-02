@@ -2,7 +2,7 @@
 
 This project is *experimental & unofficial*, a **proof-of-concept**.  Don't try using it in any serious capacity yet. 
 
-This project requires Unity 2018 - i recommend the latest beta of 2018.1 right now.
+This project requires Unity 2018.
 
 ## [Demo 1 - Effect Composer](/Assets/Scripts/EffectComposer.cs)
 
