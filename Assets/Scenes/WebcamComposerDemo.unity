@@ -282,7 +282,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_WebcamIndex: 1
   m_WebcamTextureSize: {x: 1024, y: 576}
-  m_Texture: {fileID: 2800000, guid: c506ed7f5ca490147964725fe4200b2f, type: 3}
+  m_Texture: {fileID: 0}
   m_TargetRenderer: {fileID: 617708494}
   m_Composer: {fileID: 1378650432}
 --- !u!23 &1378650429
