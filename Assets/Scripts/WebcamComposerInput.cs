@@ -21,6 +21,9 @@ namespace BurstImageProcessing
         [Tooltip("The texture we will copy our processed data into")]
         Texture2D m_Texture;
 
+        [SerializeField]
+        protected SharedPixelBuffer32 m_SharedPixelBuffer;
+
         Texture2D m_DynamicTexture;
 
         [SerializeField]
@@ -33,22 +36,11 @@ namespace BurstImageProcessing
 
         IntPtr m_ProcessedDataPtr;
 
-        [SerializeField]
-        IEffectComposer32 m_Composer;
-
-        NativeArray<Color32> m_NativeColor;
-
         void OnEnable()
         {
-            m_Composer = GetComponent<IEffectComposer32>();
-
             m_Data = new Color32[m_WebcamTextureSize.x * m_WebcamTextureSize.y];
-            m_NativeColor = new NativeArray<Color32>(m_Data, Allocator.Persistent);
 
-            m_Composer.ReInitialize(m_Data);
-
-            if (m_Composer == null)
-                m_Composer = GetComponent<IEffectComposer32>();
+            m_SharedPixelBuffer.Initialize(m_Data);
 
             if (m_WebcamIndex >= WebCamTexture.devices.Length)
                 m_WebcamIndex = WebCamTexture.devices.Length - 1;
@@ -64,20 +56,15 @@ namespace BurstImageProcessing
             m_CamTexture.Play();
         }
 
-        private void OnDisable()
-        {
-            m_NativeColor.Dispose();
-        }
-
         void Update()
         {
             m_CamTexture.GetPixels32(m_Data);
-            m_Composer.UpdateImageData(m_Data);
+            m_SharedPixelBuffer.UpdateImageData(m_Data);
         }
 
         void LateUpdate()
         {
-            var byteCount = m_Composer.GetProcessedDataPtr(out m_ProcessedDataPtr);
+            var byteCount = m_SharedPixelBuffer.GetPixelBufferPtr(out m_ProcessedDataPtr);
             m_DynamicTexture.LoadRawTextureData(m_ProcessedDataPtr, byteCount);
             m_DynamicTexture.Apply(false);
         }

@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace BurstImageProcessing
 {
-    public class BitwiseThresholdEffectComposer : MonoBehaviour, IEffectComposer32
+    public class BitwiseThresholdEffectComposer : MonoBehaviour
     {
         [SerializeField]
         [Tooltip("This color defines the 'threshold' value against which a pixel's color channel equality is tested")]
@@ -41,6 +41,9 @@ namespace BurstImageProcessing
         [SerializeField]
         protected Comparator m_BlueComparator;
 
+        [SerializeField]
+        protected SharedPixelBuffer32 m_SharedPixelBuffer;
+
         JobHandle m_RedJobHandle;
         JobHandle m_GreenJobHandle;
         JobHandle m_BlueJobHandle;
@@ -51,17 +54,17 @@ namespace BurstImageProcessing
         NativeSlice<byte> m_GreenChannel;
         NativeSlice<byte> m_BlueChannel;
 
+        Texture2D m_DynamicTexture;
+
         const int k_DefaultPixelCount = 1024 * 576;
 
         void OnEnable()
         {
-            if(!m_Pixels.IsCreated)
-                m_Pixels = new NativeArray<Color32>(k_DefaultPixelCount, Allocator.Persistent);
+            if (m_SharedPixelBuffer == null)
+                m_SharedPixelBuffer = GetComponent<SharedPixelBuffer32>();
 
-            var wholeSlice = new NativeSlice<Color32>(m_Pixels);
-            m_RedChannel = wholeSlice.SliceWithStride<byte>(0);
-            m_GreenChannel = wholeSlice.SliceWithStride<byte>(1);
-            m_BlueChannel = wholeSlice.SliceWithStride<byte>(2);
+            m_SharedPixelBuffer.AssignColorChannels(out m_RedChannel, out m_GreenChannel, out m_BlueChannel);
+            m_SharedPixelBuffer.RegisterOnGetPixelBufferAction(FinishJobs);
 
             m_DummyDependencyHandle = new JobHandle();
             m_DummyDependencyHandle.Complete();
@@ -69,7 +72,7 @@ namespace BurstImageProcessing
 
         private void OnDisable()
         {
-            m_Pixels.Dispose();
+            m_SharedPixelBuffer.UnregisterOnGetPixelBufferAction(FinishJobs);
         }
 
         void Update()
@@ -94,30 +97,14 @@ namespace BurstImageProcessing
 
         void LateUpdate()
         {
-            m_RedJobHandle.Complete();
-            m_GreenJobHandle.Complete();
-            m_BlueJobHandle.Complete();
+            FinishJobs();
         }
 
-        Texture2D m_DynamicTexture;
-
-        // returns byte count
-        unsafe public int GetProcessedDataPtr(out IntPtr ptr)
+        void FinishJobs()
         {
             m_RedJobHandle.Complete();
             m_GreenJobHandle.Complete();
             m_BlueJobHandle.Complete();
-
-            ptr = (IntPtr)m_Pixels.GetUnsafeReadOnlyPtr();
-            return m_Pixels.Length * sizeof(Color32);
-        }
-
-        public void UpdateImageData(Color32[] pixels)
-        {
-            if (pixels.Length != m_Pixels.Length)
-                Debug.LogError("input pixel array length must be equal to the current native pixel array length", this);
-
-            m_Pixels.CopyFrom(pixels);
         }
 
         // for use when the size changes
@@ -126,14 +113,11 @@ namespace BurstImageProcessing
             if (!m_BlueJobHandle.IsCompleted)
                 m_BlueJobHandle.Complete();
 
-            if(m_Pixels.IsCreated)
-                m_Pixels.Dispose();
+            if (m_SharedPixelBuffer == null)
+                m_SharedPixelBuffer = GetComponent<SharedPixelBuffer32>();
 
-            m_Pixels = new NativeArray<Color32>(pixels.Length, Allocator.Persistent);
-            var wholeSlice = new NativeSlice<Color32>(m_Pixels);
-            m_RedChannel = wholeSlice.SliceWithStride<byte>(0);
-            m_GreenChannel = wholeSlice.SliceWithStride<byte>(1);
-            m_BlueChannel = wholeSlice.SliceWithStride<byte>(2);
+            m_SharedPixelBuffer.Initialize(pixels);
+            m_SharedPixelBuffer.RegisterOnGetPixelBufferAction(FinishJobs);
         }
 
         void ScheduleChannel(Operator op, Comparator comparator, Operand operand,
