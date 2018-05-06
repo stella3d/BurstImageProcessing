@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace BurstImageProcessing
 {
-    [CustomEditor(typeof(EffectComposer))]
+    [CustomEditor(typeof(BitwiseThresholdEffectComposer))]
     public class ComposedEffectEditor : Editor
     {
         SerializedProperty enableRed;

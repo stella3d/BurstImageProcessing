@@ -34,19 +34,21 @@ namespace BurstImageProcessing
         IntPtr m_ProcessedDataPtr;
 
         [SerializeField]
-        EffectComposer m_Composer;
+        IEffectComposer32 m_Composer;
 
         NativeArray<Color32> m_NativeColor;
 
-        unsafe void OnEnable()
+        void OnEnable()
         {
+            m_Composer = GetComponent<IEffectComposer32>();
+
             m_Data = new Color32[m_WebcamTextureSize.x * m_WebcamTextureSize.y];
             m_NativeColor = new NativeArray<Color32>(m_Data, Allocator.Persistent);
 
             m_Composer.ReInitialize(m_Data);
 
             if (m_Composer == null)
-                m_Composer = GetComponent<EffectComposer>();
+                m_Composer = GetComponent<IEffectComposer32>();
 
             if (m_WebcamIndex >= WebCamTexture.devices.Length)
                 m_WebcamIndex = WebCamTexture.devices.Length - 1;

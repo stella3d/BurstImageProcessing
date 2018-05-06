@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace BurstImageProcessing
 {
-    public class EffectComposer : MonoBehaviour
+    public class BitwiseThresholdEffectComposer : MonoBehaviour, IEffectComposer32
     {
         [SerializeField]
         [Tooltip("This color defines the 'threshold' value against which a pixel's color channel equality is tested")]
@@ -97,18 +97,6 @@ namespace BurstImageProcessing
             m_RedJobHandle.Complete();
             m_GreenJobHandle.Complete();
             m_BlueJobHandle.Complete();
-        }
-
-        public void GetProcessedData(Color32[] pixels)
-        {
-            if (pixels.Length != m_Pixels.Length)
-                Debug.LogError("output pixel array length must be equal to the current native pixel array length", this);
-
-            m_RedJobHandle.Complete();
-            m_GreenJobHandle.Complete();
-            m_BlueJobHandle.Complete();
-
-            m_Pixels.CopyTo(pixels);
         }
 
         Texture2D m_DynamicTexture;
