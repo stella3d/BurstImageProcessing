@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace BurstImageProcessing.Threshold
 {
-    [BurstCompile]
+    [ComputeJobOptimization]
     public struct OverThresholdOffsetJob : IJobParallelFor
     {
         [NativeDisableParallelForRestriction]
@@ -28,7 +28,7 @@ namespace BurstImageProcessing.Threshold
         }
     }
 
-    [BurstCompile]
+    [ComputeJobOptimization]
     public struct UnderThresholdOffsetJob : IJobParallelFor
     {
         [NativeDisableParallelForRestriction]
