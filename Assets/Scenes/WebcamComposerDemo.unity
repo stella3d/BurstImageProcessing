@@ -261,9 +261,9 @@ GameObject:
   - component: {fileID: 1378650431}
   - component: {fileID: 1378650430}
   - component: {fileID: 1378650429}
-  - component: {fileID: 1378650432}
   - component: {fileID: 1378650428}
   - component: {fileID: 1378650433}
+  - component: {fileID: 1378650434}
   m_Layer: 0
   m_Name: WebcamDisplay
   m_TagString: Untagged
@@ -283,7 +283,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_WebcamIndex: 1
-  m_WebcamTextureSize: {x: 1024, y: 576}
+  m_WebcamTextureSize: {x: 1280, y: 720}
   m_Texture: {fileID: 0}
   m_SharedPixelBuffer: {fileID: 1378650433}
   m_TargetRenderer: {fileID: 617708494}
@@ -342,33 +342,6 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 3
   m_LocalEulerAnglesHint: {x: 90, y: 0, z: 180}
---- !u!114 &1378650432
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 0}
-  m_GameObject: {fileID: 1378650427}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 84eb719916ead9240aedb7c06e68d8b0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_ColorThreshold:
-    serializedVersion: 2
-    rgba: 0
-  m_EnableRed: 1
-  m_RedOperator: 0
-  m_RedOperand: 0
-  m_RedComparator: 0
-  m_EnableGreen: 1
-  m_GreenOperator: 0
-  m_GreenOperand: 1
-  m_GreenComparator: 0
-  m_EnableBlue: 1
-  m_BlueOperator: 0
-  m_BlueOperand: 0
-  m_BlueComparator: 0
-  m_SharedPixelBuffer: {fileID: 0}
 --- !u!114 &1378650433
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -380,6 +353,29 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 685c4814f957cf7488e1cd434bc7d6af, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &1378650434
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 1378650427}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1d272343412b8b645b1e18a2c5132d51, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_ColorThreshold:
+    serializedVersion: 2
+    rgba: 6199357
+  m_EnableRed: 1
+  m_RedOffset: -83
+  m_EnableGreen: 1
+  m_GreenOffset: -25
+  m_EnableBlue: 1
+  m_BlueOffset: -16
+  m_SharedPixelBuffer: {fileID: 1378650433}
+  m_Width: 1280
+  m_Height: 720
 --- !u!1 &2133878800
 GameObject:
   m_ObjectHideFlags: 0

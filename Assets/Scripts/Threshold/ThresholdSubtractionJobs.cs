@@ -4,7 +4,7 @@ using Unity.Mathematics;
 
 namespace BurstImageProcessing.Threshold
 {
-    [ComputeJobOptimization]
+    [BurstCompile]
     //[ComposerInputs(Operator.Subtract, Comparator.Greater, Operand.Other)]
     public struct OverThresholdSubtractValueJob : IJobParallelFor
     {
@@ -18,7 +18,7 @@ namespace BurstImageProcessing.Threshold
         }
     }
 
-    [ComputeJobOptimization]
+    [BurstCompile]
     //[ComposerInputs(Operator.Subtract, Comparator.Equal, Operand.Other)]
     public struct EqualThresholdSubtractValueJob : IJobParallelFor
     {
@@ -32,7 +32,7 @@ namespace BurstImageProcessing.Threshold
         }
     }
 
-    [ComputeJobOptimization]
+    [BurstCompile]
     //[ComposerInputs(Operator.Subtract, Comparator.Less, Operand.Other)]
     public struct UnderThresholdSubtractValueJob : IJobParallelFor
     {

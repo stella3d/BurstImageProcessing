@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Unity.Collections;
 using UnityEngine;
 using Unity.Collections.LowLevel.Unsafe;
+using Unity.Jobs;
 
 namespace BurstImageProcessing
 {
@@ -15,7 +16,7 @@ namespace BurstImageProcessing
 
         // a list of everything that has to happen before we can safely read from the NativeArray
         // usually just calling Complete() on job handles
-        List<Action> m_OnGetPixelBuffer = new List<Action>();
+        List<Action> m_CompleteBeforeRead = new List<Action>();
 
         public void Initialize(Color32[] pixels)
         {
@@ -52,18 +53,18 @@ namespace BurstImageProcessing
 
         public void RegisterOnGetPixelBufferAction(Action action)
         {
-            m_OnGetPixelBuffer.Add(action);
+            m_CompleteBeforeRead.Add(action);
         }
 
         public void UnregisterOnGetPixelBufferAction(Action action)
         {
-            m_OnGetPixelBuffer.Remove(action);
+            m_CompleteBeforeRead.Remove(action);
         }
 
         unsafe public int GetPixelBufferPtr(out IntPtr ptr)
         {
-            foreach (var action in m_OnGetPixelBuffer)
-                action();
+            foreach (var handle in m_CompleteBeforeRead)
+                handle();
 
             ptr = (IntPtr)m_Pixels.GetUnsafeReadOnlyPtr();
             return m_Pixels.Length * sizeof(Color32);
