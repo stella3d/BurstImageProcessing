@@ -29,6 +29,19 @@ namespace BurstImageProcessing
             m_GreenChannel = wholeSlice.SliceWithStride<byte>(1);
             m_BlueChannel = wholeSlice.SliceWithStride<byte>(2);
         }
+        
+        public void Initialize(NativeArray<Color32> pixels)
+        {
+            if (m_Pixels.IsCreated)
+                m_Pixels.Dispose();
+
+            m_Pixels = new NativeArray<Color32>(pixels.Length, Allocator.Persistent);
+            m_Pixels.CopyFrom(pixels);
+            var wholeSlice = new NativeSlice<Color32>(m_Pixels);
+            m_RedChannel = wholeSlice.SliceWithStride<byte>(0);
+            m_GreenChannel = wholeSlice.SliceWithStride<byte>(1);
+            m_BlueChannel = wholeSlice.SliceWithStride<byte>(2);
+        }
 
         public void OnDisable()
         {
@@ -41,6 +54,18 @@ namespace BurstImageProcessing
             red = m_RedChannel;
             green = m_GreenChannel;
             blue = m_BlueChannel;
+        }
+        
+        public void UpdateImageData(NativeArray<Color32> pixels)
+        {
+            if (pixels.Length != m_Pixels.Length)
+            {
+                Debug.LogErrorFormat(
+                    "input pixel array length {0} must be equal to the current native pixel array length {1}",
+                    pixels.Length, m_Pixels.Length);
+            }
+
+            m_Pixels.CopyFrom(pixels);
         }
 
         public void UpdateImageData(Color32[] pixels)

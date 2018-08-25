@@ -35,12 +35,16 @@ namespace BurstImageProcessing
         Color32[] m_Data;
 
         IntPtr m_ProcessedDataPtr;
+        
+        IntPtr m_WebcamTexturePtr;
+
+        int m_WebcamTextureLength;
+        
+        NativeArray<Color32> m_NativeWebcamTexture;
 
         void OnEnable()
         {
             m_Data = new Color32[m_WebcamTextureSize.x * m_WebcamTextureSize.y];
-
-            m_SharedPixelBuffer.Initialize(m_Data);
 
             if (m_WebcamIndex >= WebCamTexture.devices.Length)
                 m_WebcamIndex = WebCamTexture.devices.Length - 1;
@@ -54,18 +58,33 @@ namespace BurstImageProcessing
             m_TargetRenderer.material.mainTexture = m_DynamicTexture;
 
             m_CamTexture.Play();
+
+            m_WebcamTexturePtr = m_CamTexture.GetNativeTexturePtr();
+            m_WebcamTextureLength = m_WebcamTextureSize.x * m_WebcamTextureSize.y; 
+            
+            unsafe
+            {
+                m_NativeWebcamTexture = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<Color32>(
+                    (void*)m_WebcamTexturePtr, m_WebcamTextureLength, Allocator.Persistent);
+            }
+            
+            m_SharedPixelBuffer.Initialize(m_NativeWebcamTexture);
+
+
+            Debug.Log("pointer to cam texture: " + m_WebcamTexturePtr);
+            Debug.Log("Webcam texture size: " + m_WebcamTextureLength);
         }
 
         void Update()
         {
             m_CamTexture.GetPixels32(m_Data);
-            m_SharedPixelBuffer.UpdateImageData(m_Data);
+            m_SharedPixelBuffer.UpdateImageData(m_NativeWebcamTexture);
         }
 
         void LateUpdate()
         {
             var byteCount = m_SharedPixelBuffer.GetPixelBufferPtr(out m_ProcessedDataPtr);
-            m_DynamicTexture.LoadRawTextureData(m_ProcessedDataPtr, byteCount);
+            m_DynamicTexture.LoadRawTextureData(m_WebcamTexturePtr, m_WebcamTextureLength * 4);
             m_DynamicTexture.Apply(false);
         }
     }
