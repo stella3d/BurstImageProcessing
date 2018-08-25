@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
+
 using UnityEngine;
 
 namespace BurstImageProcessing
@@ -36,11 +37,17 @@ namespace BurstImageProcessing
 
         IntPtr m_ProcessedDataPtr;
 
+        NativeArray<Color32> m_NativePixels; 
+
+        const int k_SizeOfColor32 = 4;
+
         void OnEnable()
         {
+            m_Texture = new Texture2D(m_WebcamTextureSize.x, m_WebcamTextureSize.y);
             m_Data = new Color32[m_WebcamTextureSize.x * m_WebcamTextureSize.y];
+            m_NativePixels = new NativeArray<Color32>(m_Data, Allocator.Persistent);
 
-            m_SharedPixelBuffer.Initialize(m_Data);
+            m_SharedPixelBuffer.Initialize(m_NativePixels);
 
             if (m_WebcamIndex >= WebCamTexture.devices.Length)
                 m_WebcamIndex = WebCamTexture.devices.Length - 1;
@@ -58,8 +65,11 @@ namespace BurstImageProcessing
 
         void Update()
         {
-            m_CamTexture.GetPixels32(m_Data);
-            m_SharedPixelBuffer.UpdateImageData(m_Data);
+            IntPtr texturePtr = m_CamTexture.GetNativeTexturePtr();
+            m_Texture.LoadRawTextureData(texturePtr, m_CamTexture.width * m_CamTexture.height * k_SizeOfColor32);
+            
+            //m_NativePixels = m_Texture.GetRawTextureData<Color32>();
+            //m_SharedPixelBuffer.UpdateImageData(ref m_NativePixels);
         }
 
         void LateUpdate()
@@ -67,6 +77,11 @@ namespace BurstImageProcessing
             var byteCount = m_SharedPixelBuffer.GetPixelBufferPtr(out m_ProcessedDataPtr);
             m_DynamicTexture.LoadRawTextureData(m_ProcessedDataPtr, byteCount);
             m_DynamicTexture.Apply(false);
+        }
+
+        void OnDisable()
+        {
+            m_NativePixels.Dispose();
         }
     }
 }

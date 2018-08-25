@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Unity.Collections;
 using UnityEngine;
 using Unity.Collections.LowLevel.Unsafe;
+using Unity.Jobs;
 
 namespace BurstImageProcessing
 {
@@ -15,14 +16,14 @@ namespace BurstImageProcessing
 
         // a list of everything that has to happen before we can safely read from the NativeArray
         // usually just calling Complete() on job handles
-        List<Action> m_OnGetPixelBuffer = new List<Action>();
+        List<Action> m_CompleteBeforeRead = new List<Action>();
 
-        public void Initialize(Color32[] pixels)
+        public void Initialize(NativeArray<Color32> pixels)
         {
             if (m_Pixels.IsCreated)
                 m_Pixels.Dispose();
 
-            m_Pixels = new NativeArray<Color32>(pixels.Length, Allocator.Persistent);
+            m_Pixels = pixels;
             var wholeSlice = new NativeSlice<Color32>(m_Pixels);
             m_RedChannel = wholeSlice.SliceWithStride<byte>(0);
             m_GreenChannel = wholeSlice.SliceWithStride<byte>(1);
@@ -49,21 +50,30 @@ namespace BurstImageProcessing
 
             m_Pixels.CopyFrom(pixels);
         }
+        
+        public void UpdateImageData(ref NativeArray<Color32> pixels)
+        {
+            m_Pixels = pixels;
+            var wholeSlice = new NativeSlice<Color32>(m_Pixels);
+            m_RedChannel = wholeSlice.SliceWithStride<byte>(0);
+            m_GreenChannel = wholeSlice.SliceWithStride<byte>(1);
+            m_BlueChannel = wholeSlice.SliceWithStride<byte>(2);
+        }
 
         public void RegisterOnGetPixelBufferAction(Action action)
         {
-            m_OnGetPixelBuffer.Add(action);
+            m_CompleteBeforeRead.Add(action);
         }
 
         public void UnregisterOnGetPixelBufferAction(Action action)
         {
-            m_OnGetPixelBuffer.Remove(action);
+            m_CompleteBeforeRead.Remove(action);
         }
 
         unsafe public int GetPixelBufferPtr(out IntPtr ptr)
         {
-            foreach (var action in m_OnGetPixelBuffer)
-                action();
+            foreach (var handle in m_CompleteBeforeRead)
+                handle();
 
             ptr = (IntPtr)m_Pixels.GetUnsafeReadOnlyPtr();
             return m_Pixels.Length * sizeof(Color32);

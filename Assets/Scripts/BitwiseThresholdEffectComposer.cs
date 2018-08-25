@@ -116,7 +116,7 @@ namespace BurstImageProcessing
             if (m_SharedPixelBuffer == null)
                 m_SharedPixelBuffer = GetComponent<SharedPixelBuffer32>();
 
-            m_SharedPixelBuffer.Initialize(pixels);
+            m_SharedPixelBuffer.Initialize(m_Pixels);
             m_SharedPixelBuffer.RegisterOnGetPixelBufferAction(FinishJobs);
         }
 
